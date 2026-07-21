@@ -17,10 +17,13 @@ PARMI — бот для чек-листа закрытия зала.
 import logging
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 logging.basicConfig(level=logging.INFO)
+
+MOSCOW_TZ = ZoneInfo("Europe/Moscow")
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 
@@ -29,7 +32,7 @@ ZONES = {
         "name": "Зал",
         "items": [
             "Протереть столы в зале",
-            "Перечницы и солонки",
+            "Пополнить станции",
             "Поправить/протереть меню",
             "Протереть приборы и раздачу",
         ],
@@ -40,7 +43,7 @@ ZONES = {
             "Закрыть веранду",
             "Убрать пепельницу",
             "Проверить мусорки, сменить пакет",
-            "Сложить плед",
+            "Сложить пледы",
             "Пополнить шкаф на веранде",
             "Протереть официантский стол на веранде",
         ],
@@ -49,9 +52,9 @@ ZONES = {
         "name": "Расходники и бар",
         "items": [
             "Пополнить салфетки, трубочки, сахар",
-            "Холодильник и не холодные напитки",
+            "Пополнить холодильник и шкаф с тёплыми напитками",
             "Сдать тряпки на мойку",
-            "Миска",
+            "Помыть и заполнить водой миску",
         ],
     },
 }
@@ -61,7 +64,7 @@ state = {}
 
 
 def today():
-    return datetime.now().strftime("%Y-%m-%d")
+    return datetime.now(MOSCOW_TZ).strftime("%Y-%m-%d")
 
 
 def get_zone_state(chat_id, zone_id):
@@ -152,7 +155,7 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         zs = get_zone_state(chat_id, zone_id)
         zs["closed"] = True
         user = query.from_user.full_name
-        now = datetime.now().strftime("%d.%m.%Y %H:%M")
+        now = datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y %H:%M")
         report = (
             f"✅ ЗАКРЫТИЕ — {zone['name'].upper()}\n"
             f"{now}\n"
