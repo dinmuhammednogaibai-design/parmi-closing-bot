@@ -172,13 +172,32 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 
+async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE):
+    # Логируем ошибку, но не даём ей уронить процесс целиком.
+    logging.error("Unhandled exception while processing update", exc_info=context.error)
+
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("closing", cmd_closing))
     app.add_handler(CallbackQueryHandler(on_button))
+    app.add_error_handler(on_error)
     print("Бот запущен. Нажмите Ctrl+C для остановки.")
-    app.run_polling()
+    # drop_pending_updates: не разбираем то, что накопилось, пока бот был выключен —
+    # иначе после долгого простоя бот "выстрелит" старыми нажатиями кнопок.
+    app.run_polling(drop_pending_updates=True)
 
 
 if __name__ == "__main__":
-    main()
+    # Внешний слой самовосстановления: если run_polling всё же вылетит
+    # с необработанным исключением (сетевой сбой, обрыв соединения и т.п.),
+    # процесс не должен просто умирать — он логирует причину, ждёт немного
+    # и поднимается заново сам, без ручной пересборки на Bothost.
+    import time
+
+    while True:
+        try:
+            main()
+        except Exception:
+            logging.exception("Bot crashed, restarting in 10 seconds")
+            time.sleep(10)
